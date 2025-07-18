@@ -4,47 +4,46 @@ import numpy as np
 import joblib
 from fastapi.middleware.cors import CORSMiddleware
 
+# FastAPI app
 app = FastAPI()
 
-# CORS para conexión con React
+# CORS para permitir conexión con frontend React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, usa solo tu dominio
+    allow_origins=["*"],  # Cambia esto a ["http://localhost:3000"] si prefieres restringir
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Carga de modelos
+# Cargar modelos
 modelo_regresion = joblib.load("model/modelo_regresion.pkl")
 modelo_clasificacion = joblib.load("model/modelo_clasificacion.pkl")
 escalador = joblib.load("model/escalador.pkl")
 
-# Pydantic para validación
-class InputRegresion(BaseModel):
-    kast: float
-    time_alive: float
-    travelled_distance: float
-    round_headshots: float
+# Modelo de entrada
+class InputData(BaseModel):
+    KAST: float
+    TimeAlive: float
+    TravelledDistance: float
+    RoundHeadshots: float
 
-class InputClasificacion(BaseModel):
-    kast: float
-    time_alive: float
-    travelled_distance: float
+# Ruta de prueba
+@app.get("/")
+def root():
+    return {"message": "API operativa"}
 
-@app.post("/predict/impact_score")
-def predecir_impact_score(data: InputRegresion):
-    X = np.array([[data.kast, data.time_alive, data.travelled_distance, data.round_headshots]])
-    y_pred = modelo_regresion.predict(X)
-    return {"impact_score": round(y_pred[0], 2)}
+# Endpoint de regresión
+@app.post("/predict_regression")
+def predict_regression(data: InputData):
+    features = np.array([[data.KAST, data.TimeAlive, data.TravelledDistance, data.RoundHeadshots]])
+    prediction = modelo_regresion.predict(features)
+    return {"ImpactPlayerScore": round(prediction[0], 2)}
 
-@app.post("/predict/high_impact_player")
-def predecir_jugador_alto_impacto(data: InputClasificacion):
-    X = np.array([[data.kast, data.time_alive, data.travelled_distance]])
-    X_scaled = escalador.transform(X)
-    pred = modelo_clasificacion.predict(X_scaled)
-    proba = modelo_clasificacion.predict_proba(X_scaled)[0][1]
-    return {
-        "high_impact_prediction": int(pred[0]),
-        "probability": round(proba, 3)
-    }
+# Endpoint de clasificación
+@app.post("/predict_classification")
+def predict_classification(data: InputData):
+    features = np.array([[data.KAST, data.TimeAlive, data.TravelledDistance, data.RoundHeadshots]])
+    features_scaled = escalador.transform(features)
+    prediction = modelo_clasificacion.predict(features_scaled)
+    return {"HighImpactPlayer": int(prediction[0])}

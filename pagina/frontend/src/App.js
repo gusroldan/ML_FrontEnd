@@ -1,136 +1,280 @@
 import React, { useState } from "react";
 
-function App() {
-  // Estado para modelo de regresión
-  const [regInputs, setRegInputs] = useState({
-    kast: "",
-    time_alive: "",
-    travelled_distance: "",
-    round_headshots: "",
-  });
-  const [regResult, setRegResult] = useState(null);
+const estilos = {
+  container: {
+    maxWidth: "600px",
+    margin: "2rem auto",
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    padding: "1rem",
+  },
+  header: {
+    textAlign: "center",
+    fontSize: "2rem",
+    marginBottom: "1.5rem",
+  },
+  tabs: {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "1.5rem",
+  },
+  tabButton: (active) => ({
+    padding: "0.5rem 1.5rem",
+    cursor: "pointer",
+    border: "none",
+    borderBottom: active ? "3px solid #007bff" : "3px solid transparent",
+    backgroundColor: "transparent",
+    fontWeight: active ? "bold" : "normal",
+    color: active ? "#007bff" : "#444",
+    fontSize: "1rem",
+    transition: "border-color 0.3s",
+  }),
+  card: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: "8px",
+    padding: "1rem 1.5rem",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+    marginBottom: "1rem",
+    minHeight: "3rem",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "600",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+  },
+  label: {
+    fontWeight: "600",
+  },
+  input: {
+    padding: "0.5rem",
+    fontSize: "1rem",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    outline: "none",
+    transition: "border-color 0.3s",
+  },
+  inputFocus: {
+    borderColor: "#007bff",
+  },
+  button: {
+    padding: "0.7rem",
+    fontSize: "1rem",
+    backgroundColor: "#007bff",
+    color: "white",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    fontWeight: "600",
+    transition: "background-color 0.3s",
+  },
+  buttonHover: {
+    backgroundColor: "#0056b3",
+  },
+  buttonDisabled: {
+    backgroundColor: "#a0c4ff",
+    cursor: "not-allowed",
+  },
+};
 
-  // Estado para modelo de clasificación
-  const [clfInputs, setClfInputs] = useState({
-    kast: "",
-    time_alive: "",
-    travelled_distance: "",
-  });
-  const [clfResult, setClfResult] = useState(null);
+export default function App() {
+  const [tab, setTab] = useState("regresion");
 
-  // Cambios en formularios
-  const handleChange = (setter) => (e) => {
-    const { name, value } = e.target;
-    setter((prev) => ({ ...prev, [name]: value }));
+  const [inputsReg, setInputsReg] = useState({
+    KAST: "",
+    TimeAlive: "",
+    TravelledDistance: "",
+    RoundHeadshots: "",
+  });
+  const [resultReg, setResultReg] = useState(null);
+  const [loadingReg, setLoadingReg] = useState(false);
+
+  const [inputsClas, setInputsClas] = useState({
+    KAST: "",
+    TimeAlive: "",
+    TravelledDistance: "",
+    RoundHeadshots: "",
+  });
+  const [resultClas, setResultClas] = useState(null);
+  const [loadingClas, setLoadingClas] = useState(false);
+
+  const handleChangeReg = (e) => {
+    setInputsReg({ ...inputsReg, [e.target.name]: e.target.value });
   };
 
-  // Enviar datos al backend
-  const predictRegression = async () => {
-    const response = await fetch("http://localhost:8000/predict/impact_score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kast: parseFloat(regInputs.kast),
-        time_alive: parseFloat(regInputs.time_alive),
-        travelled_distance: parseFloat(regInputs.travelled_distance),
-        round_headshots: parseFloat(regInputs.round_headshots),
-      }),
-    });
-    const data = await response.json();
-    setRegResult(data.impact_score);
+  const handleChangeClas = (e) => {
+    setInputsClas({ ...inputsClas, [e.target.name]: e.target.value });
   };
 
-  const predictClassification = async () => {
-    const response = await fetch("http://localhost:8000/predict/high_impact_player", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kast: parseFloat(clfInputs.kast),
-        time_alive: parseFloat(clfInputs.time_alive),
-        travelled_distance: parseFloat(clfInputs.travelled_distance),
-      }),
-    });
-    const data = await response.json();
-    setClfResult(data);
+  const handleSubmitReg = async (e) => {
+    e.preventDefault();
+    setLoadingReg(true);
+    setResultReg(null);
+
+    try {
+      const res = await fetch("http://localhost:8000/predict_regression", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          KAST: Number(inputsReg.KAST),
+          TimeAlive: Number(inputsReg.TimeAlive),
+          TravelledDistance: Number(inputsReg.TravelledDistance),
+          RoundHeadshots: Number(inputsReg.RoundHeadshots),
+        }),
+      });
+      const data = await res.json();
+      setResultReg(data.ImpactPlayerScore);
+    } catch {
+      setResultReg("Error al predecir");
+    } finally {
+      setLoadingReg(false);
+    }
+  };
+
+  const handleSubmitClas = async (e) => {
+    e.preventDefault();
+    setLoadingClas(true);
+    setResultClas(null);
+
+    try {
+      const res = await fetch("http://localhost:8000/predict_classification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          KAST: Number(inputsClas.KAST),
+          TimeAlive: Number(inputsClas.TimeAlive),
+          TravelledDistance: Number(inputsClas.TravelledDistance),
+          RoundHeadshots: Number(inputsClas.RoundHeadshots),
+        }),
+      });
+      const data = await res.json();
+      // Aquí traducimos 0 o 1 a "No" o "Sí"
+      setResultClas(data.HighImpactPlayer === 1 ? "Sí" : "No");
+    } catch {
+      setResultClas("Error al predecir");
+    } finally {
+      setLoadingClas(false);
+    }
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Predicción de Jugador en CSGO</h1>
+    <div style={estilos.container}>
+      <h1 style={estilos.header}>Predicción de Jugador</h1>
 
-      {/* Formulario de regresión */}
-      <div style={{ marginBottom: "40px" }}>
-        <h2>1. Predecir Impact Player Score</h2>
-        <input
-          type="number"
-          name="kast"
-          placeholder="KAST"
-          value={regInputs.kast}
-          onChange={handleChange(setRegInputs)}
-        />
-        <input
-          type="number"
-          name="time_alive"
-          placeholder="Time Alive"
-          value={regInputs.time_alive}
-          onChange={handleChange(setRegInputs)}
-        />
-        <input
-          type="number"
-          name="travelled_distance"
-          placeholder="Travelled Distance"
-          value={regInputs.travelled_distance}
-          onChange={handleChange(setRegInputs)}
-        />
-        <input
-          type="number"
-          name="round_headshots"
-          placeholder="Round Headshots"
-          value={regInputs.round_headshots}
-          onChange={handleChange(setRegInputs)}
-        />
-        <br />
-        <button onClick={predictRegression}>Predecir Score</button>
-        {regResult !== null && (
-          <p><strong>Impact Player Score:</strong> {regResult}</p>
-        )}
+      <div style={estilos.tabs}>
+        <button
+          style={tab === "regresion" ? estilos.tabButton(true) : estilos.tabButton(false)}
+          onClick={() => setTab("regresion")}
+          type="button"
+        >
+          Modelo Regresión
+        </button>
+        <button
+          style={tab === "clasificacion" ? estilos.tabButton(true) : estilos.tabButton(false)}
+          onClick={() => setTab("clasificacion")}
+          type="button"
+        >
+          Modelo Clasificación
+        </button>
       </div>
 
-      {/* Formulario de clasificación */}
-      <div>
-        <h2>2. Clasificar como High Impact Player</h2>
-        <input
-          type="number"
-          name="kast"
-          placeholder="KAST"
-          value={clfInputs.kast}
-          onChange={handleChange(setClfInputs)}
-        />
-        <input
-          type="number"
-          name="time_alive"
-          placeholder="Time Alive"
-          value={clfInputs.time_alive}
-          onChange={handleChange(setClfInputs)}
-        />
-        <input
-          type="number"
-          name="travelled_distance"
-          placeholder="Travelled Distance"
-          value={clfInputs.travelled_distance}
-          onChange={handleChange(setClfInputs)}
-        />
-        <br />
-        <button onClick={predictClassification}>Clasificar Jugador</button>
-        {clfResult !== null && (
-          <p>
-            <strong>¿High Impact Player?</strong> {clfResult.high_impact_prediction === 1 ? "Sí" : "No"}<br />
-            <strong>Probabilidad:</strong> {clfResult.probability}
-          </p>
-        )}
-      </div>
+      {tab === "regresion" && (
+        <section
+          style={{
+            backgroundColor: "#fff",
+            padding: "1rem 2rem",
+            borderRadius: 8,
+            boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+          }}
+        >
+          <div style={estilos.card}>
+            {loadingReg
+              ? "Cargando..."
+              : resultReg !== null
+              ? `Predicción ImpactPlayerScore: ${resultReg}`
+              : "Ingrese los valores y presione Predecir"}
+          </div>
+          <form onSubmit={handleSubmitReg} style={estilos.form}>
+            {["KAST", "TimeAlive", "TravelledDistance", "RoundHeadshots"].map((field) => (
+              <label key={field} style={estilos.label} htmlFor={field}>
+                {field}
+                <input
+                  id={field}
+                  name={field}
+                  type="number"
+                  step="any"
+                  required
+                  value={inputsReg[field]}
+                  onChange={handleChangeReg}
+                  style={estilos.input}
+                  placeholder={`Ingrese ${field}`}
+                />
+              </label>
+            ))}
+
+            <button
+              type="submit"
+              disabled={loadingReg}
+              style={{
+                ...estilos.button,
+                ...(loadingReg ? estilos.buttonDisabled : {}),
+              }}
+            >
+              Predecir
+            </button>
+          </form>
+        </section>
+      )}
+
+      {tab === "clasificacion" && (
+        <section
+          style={{
+            backgroundColor: "#fff",
+            padding: "1rem 2rem",
+            borderRadius: 8,
+            boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+          }}
+        >
+          <div style={estilos.card}>
+            {loadingClas
+              ? "Cargando..."
+              : resultClas !== null
+              ? `Predicción High Impact Player: ${resultClas}`
+              : "Ingrese los valores y presione Predecir"}
+          </div>
+          <form onSubmit={handleSubmitClas} style={estilos.form}>
+            {["KAST", "TimeAlive", "TravelledDistance", "RoundHeadshots"].map((field) => (
+              <label key={field} style={estilos.label} htmlFor={field}>
+                {field}
+                <input
+                  id={field}
+                  name={field}
+                  type="number"
+                  step="any"
+                  required
+                  value={inputsClas[field]}
+                  onChange={handleChangeClas}
+                  style={estilos.input}
+                  placeholder={`Ingrese ${field}`}
+                />
+              </label>
+            ))}
+
+            <button
+              type="submit"
+              disabled={loadingClas}
+              style={{
+                ...estilos.button,
+                ...(loadingClas ? estilos.buttonDisabled : {}),
+              }}
+            >
+              Predecir
+            </button>
+          </form>
+        </section>
+      )}
     </div>
   );
 }
-
-export default App;
